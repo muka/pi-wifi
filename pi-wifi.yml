@@ -1,0 +1,3 @@
+
+machine_name: pi-wifi
+btmgmt_bin: ./bin/docker-btmgmt
