@@ -8,13 +8,13 @@ BUILD_PATH ?= ./build
 build: build/amd64 build/arm64 build/arm
 
 build/amd64:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ${BUILD_PATH}/${APPNAME}-amd64 .
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ${BUILD_PATH}/amd64 .
 
 build/arm64:
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o ${BUILD_PATH}/${APPNAME}-arm64 .
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o ${BUILD_PATH}/arm64 .
 
 build/arm:
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm go build -o ${BUILD_PATH}/${APPNAME}-arm .
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm go build -o ${BUILD_PATH}/arm .
 
 docker/build: build docker/build/amd64 docker/build/arm64 docker/build/arm
 
