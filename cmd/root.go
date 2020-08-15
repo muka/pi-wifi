@@ -57,7 +57,7 @@ func initConfig() {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
 	}
 
-	viper.SetDefault("machine_name", "pi-wifi")
+	viper.SetDefault("service_name", "pi-wifi")
 
 	// viper.SetDefault("btmgmt_bin", "./bin/docker-btmgmt")
 	viper.SetDefault("btmgmt_bin", "/usr/bin/btmgmt")

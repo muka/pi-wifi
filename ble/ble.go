@@ -42,7 +42,7 @@ func Serve(adapterID string) error {
 	}
 	defer a.Close()
 
-	a.SetName(viper.GetString("machine_name"))
+	a.SetName(viper.GetString("service_name"))
 
 	log.Infof("HW address %s", a.Adapter().Properties.Address)
 
@@ -79,7 +79,9 @@ func Serve(adapterID string) error {
 	}))
 
 	char1.OnWrite(service.CharWriteCallback(func(c *service.Char, value []byte) ([]byte, error) {
-		log.Warnf("GOT WRITE REQUEST")
+
+		log.Warnf("GOT WRITE REQUEST %s", value)
+
 		return value, nil
 	}))
 
@@ -88,29 +90,29 @@ func Serve(adapterID string) error {
 		return err
 	}
 
-	descr1, err := char1.NewDescr("4455")
-	if err != nil {
-		return err
-	}
+	// descr1, err := char1.NewDescr("4455")
+	// if err != nil {
+	// 	return err
+	// }
 
-	descr1.Properties.Flags = []string{
-		gatt.FlagDescriptorRead,
-		gatt.FlagDescriptorWrite,
-	}
+	// descr1.Properties.Flags = []string{
+	// 	gatt.FlagDescriptorRead,
+	// 	gatt.FlagDescriptorWrite,
+	// }
 
-	descr1.OnRead(service.DescrReadCallback(func(c *service.Descr, options map[string]interface{}) ([]byte, error) {
-		log.Warnf("GOT READ REQUEST")
-		return []byte{42}, nil
-	}))
-	descr1.OnWrite(service.DescrWriteCallback(func(d *service.Descr, value []byte) ([]byte, error) {
-		log.Warnf("GOT WRITE REQUEST")
-		return value, nil
-	}))
+	// descr1.OnRead(service.DescrReadCallback(func(c *service.Descr, options map[string]interface{}) ([]byte, error) {
+	// 	log.Warnf("GOT READ REQUEST")
+	// 	return []byte{42}, nil
+	// }))
+	// descr1.OnWrite(service.DescrWriteCallback(func(d *service.Descr, value []byte) ([]byte, error) {
+	// 	log.Warnf("GOT WRITE REQUEST")
+	// 	return value, nil
+	// }))
 
-	err = char1.AddDescr(descr1)
-	if err != nil {
-		return err
-	}
+	// err = char1.AddDescr(descr1)
+	// if err != nil {
+	// 	return err
+	// }
 
 	err = a.Run()
 	if err != nil {

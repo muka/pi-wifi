@@ -7,13 +7,29 @@ import (
 	"github.com/muka/go-bluetooth/api"
 	"github.com/muka/go-bluetooth/bluez/profile/adapter"
 	"github.com/muka/go-bluetooth/bluez/profile/device"
+	"github.com/muka/go-bluetooth/hw"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 // Discover a device by name
 func Discover(adapterID string) error {
 
+	log.SetLevel(log.TraceLevel)
+
 	log.Info("Starting discovery")
+
+	btmgmt := hw.NewBtMgmt(adapterID)
+	if len(os.Getenv("DOCKER")) > 0 {
+		btmgmt.BinPath = viper.GetString("btmgmt_bin")
+	}
+
+	// set LE mode
+	btmgmt.SetPowered(false)
+	btmgmt.SetLe(true)
+	btmgmt.SetBredr(false)
+	btmgmt.SetDiscoverable(false)
+	btmgmt.SetPowered(true)
 
 	//clean up connection on exit
 	defer api.Exit()
@@ -37,6 +53,7 @@ func Discover(adapterID string) error {
 	defer cancel()
 
 	go func() {
+		devices := map[string]*device.Device1{}
 
 		for ev := range discovery {
 
@@ -55,7 +72,20 @@ func Discover(adapterID string) error {
 				continue
 			}
 
-			log.Infof("name=%s addr=%s rssi=%d", dev.Properties.Name, dev.Properties.Address, dev.Properties.RSSI)
+			log.Infof("Found name=%s addr=%s rssi=%d", dev.Properties.Name, dev.Properties.Address, dev.Properties.RSSI)
+
+			if _, ok := devices[dev.Properties.Address]; ok {
+				log.Warnf("Skip duplicated address %s", dev.Properties.Address)
+				continue
+			}
+
+			devices[dev.Properties.Address] = dev
+
+			if dev.Properties.Name == viper.GetString("service_name") {
+				// stop discovery
+				cancel()
+				err = Client(adapterID, dev)
+			}
 
 		}
 
