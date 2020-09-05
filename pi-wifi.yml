@@ -1,3 +1,8 @@
 
 service_name: pi-wifi
 btmgmt_bin: ./bin/docker-btmgmt
+
+
+ssid: wifi name
+password: wifi password
+encryption: WPA2

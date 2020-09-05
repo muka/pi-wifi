@@ -32,7 +32,7 @@ func Serve(adapterID string) error {
 	options := service.AppOptions{
 		AdapterID:  adapterID,
 		AgentCaps:  agent.CapNoInputNoOutput,
-		UUIDSuffix: "-0000-1000-8000-00805F9B34FB",
+		UUIDSuffix: "-0000-1000-8000-00805f9b34fb",
 		UUID:       "1234",
 	}
 

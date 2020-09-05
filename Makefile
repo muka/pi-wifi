@@ -1,4 +1,4 @@
-.PHONY: build
+.PHONY: build build/amd64 build/arm64 build/arm
 
 APPNAME ?= pi-wifi
 DOCKER_IMAGE ?= opny/${APPNAME}
@@ -20,6 +20,9 @@ build/arm:
 docker/build: build docker/build/amd64 docker/build/arm64 docker/build/arm
 
 docker/build/manifest:
+
+	docker manifest push --purge ${DOCKER_IMAGE} || true
+
 	docker manifest create \
 		${DOCKER_IMAGE} \
 		--amend ${DOCKER_IMAGE}-amd64 \
@@ -27,10 +30,10 @@ docker/build/manifest:
 		--amend ${DOCKER_IMAGE}-arm6 \
 		--amend ${DOCKER_IMAGE}-arm7
 	
-	docker manifest annotate ${DOCKER_IMAGE} ${DOCKER_IMAGE}-amd64 --arch amd64
-	docker manifest annotate ${DOCKER_IMAGE} ${DOCKER_IMAGE}-arm64 --arch arm64
-	docker manifest annotate ${DOCKER_IMAGE} ${DOCKER_IMAGE}-arm6 --arch arm --variant v6
-	docker manifest annotate ${DOCKER_IMAGE} ${DOCKER_IMAGE}-arm7 --arch arm --variant v7
+	docker manifest annotate ${DOCKER_IMAGE} ${DOCKER_IMAGE}-amd64 --arch amd64 --os linux
+	docker manifest annotate ${DOCKER_IMAGE} ${DOCKER_IMAGE}-arm64 --arch arm64 --os linux
+	docker manifest annotate ${DOCKER_IMAGE} ${DOCKER_IMAGE}-arm6 --arch arm --variant v6 --os linux
+	docker manifest annotate ${DOCKER_IMAGE} ${DOCKER_IMAGE}-arm7 --arch arm --variant v7 --os linux
 
 	docker manifest push ${DOCKER_IMAGE}
 

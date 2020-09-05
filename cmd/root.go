@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-
 	"github.com/spf13/viper"
 )
 
@@ -46,7 +46,6 @@ func initConfig() {
 		// Search config in home directory with name ".pi-wifi" (without extension).
 		viper.AddConfigPath("./")
 		viper.AddConfigPath("./config")
-
 		viper.SetConfigName("pi-wifi")
 	}
 
@@ -57,9 +56,17 @@ func initConfig() {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
 	}
 
+	viper.SetDefault("LOG_LEVEL", "info")
 	viper.SetDefault("service_name", "pi-wifi")
 
 	// viper.SetDefault("btmgmt_bin", "./bin/docker-btmgmt")
 	viper.SetDefault("btmgmt_bin", "/usr/bin/btmgmt")
+
+	lvl, err := log.ParseLevel(viper.GetString("LOG_LEVEL"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.SetLevel(lvl)
 
 }
