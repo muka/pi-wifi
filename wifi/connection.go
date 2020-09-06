@@ -35,7 +35,7 @@ func (m *Manager) GetConnectionBySSID(ssid string) (connection Connection, err e
 	return connection, fmt.Errorf("Connection configuration for %s not found", ssid)
 }
 
-// GetConnections retrieve all WIFI connections
+// GetConnections retrieve all WIFI connections managed by the application
 func (m *Manager) GetConnections() (connections []Connection, err error) {
 
 	connectionsPath, err := m.settings.GetConnections(context.Background())
