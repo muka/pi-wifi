@@ -29,7 +29,8 @@ func (m *Manager) scanAccessPoints(devicePath dbus.ObjectPath) error {
 	return nil
 }
 
-func (m *Manager) getAccessPoints(devicePath dbus.ObjectPath) ([]AccessPoint, error) {
+// GetAccessPoints return a list of Access Points
+func (m *Manager) GetAccessPoints(devicePath dbus.ObjectPath) ([]AccessPoint, error) {
 
 	wireless := network_manager.NewNetworkManager_Device_Wireless(m.conn.Object(nmNs, devicePath))
 

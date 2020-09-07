@@ -10,8 +10,9 @@ import (
 
 // Device wrap a NetworkManager_Device instance
 type Device struct {
-	Path   dbus.ObjectPath
-	Device *network_manager.NetworkManager_Device
+	Interface string
+	Path      dbus.ObjectPath
+	Device    *network_manager.NetworkManager_Device
 }
 
 // GetWifiDevices enumerate WIFI devices
@@ -33,10 +34,17 @@ func (m *Manager) GetWifiDevices() ([]Device, error) {
 			continue
 		}
 
+		deviceInterface, err := device.GetInterface(context.Background())
+		if err != nil {
+			log.Warnf("Error reading device interface %s: %s", devicePath, err)
+			continue
+		}
+
 		if network_manager.NM_DEVICE_TYPE_WIFI == deviceType {
 			list = append(list, Device{
-				Path:   devicePath,
-				Device: device,
+				Path:      devicePath,
+				Device:    device,
+				Interface: deviceInterface,
 			})
 		}
 	}

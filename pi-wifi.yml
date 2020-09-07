@@ -1,8 +1,11 @@
 
 service_name: pi-wifi
-btmgmt_bin: ./bin/docker-btmgmt
+# btmgmt_bin: /usr/bin/btmgmt
 
+ble_adapter: hci0
+ble_uuid_suffix: -0000-1000-8000-00805f9b34fb
+ble_uuid_id: "1234"
 
-ssid: wifi name
-password: wifi password
-encryption: WPA2
+ble_service_id: "2233"
+ble_char_id_wifi: "3344"
+ble_char_id_ap: "4455"

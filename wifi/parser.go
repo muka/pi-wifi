@@ -7,12 +7,17 @@ import (
 	"strings"
 )
 
+// AuthType Wifi authentication mechanism
 type AuthType string
 
 const (
-	AuthTypeWEP    = "WEP"
-	AuthTypeWPA    = "WPA"
+	// AuthTypeWEP WEP authentication
+	AuthTypeWEP = "WEP"
+	// AuthTypeWPA WPA authentication
+	AuthTypeWPA = "WPA"
+	// AuthTypeWPAEAP WPA2-EAP authentication
 	AuthTypeWPAEAP = "WPA2-EAP"
+	// AuthTypeNopass no password
 	AuthTypeNopass = "nopass"
 )
 
@@ -56,7 +61,7 @@ func (c *ConnectionParams) String() string {
 		)
 	}
 
-	return params + ";;"
+	return params + ";"
 }
 
 // ParseConnection parse config from string

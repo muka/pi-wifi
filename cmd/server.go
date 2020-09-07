@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"log"
+	log "github.com/sirupsen/logrus"
 
-	"github.com/muka/pi-wifi/ble"
+	"github.com/muka/pi-wifi/runtime"
 	"github.com/spf13/cobra"
 )
 
@@ -13,13 +13,14 @@ var serverCmd = &cobra.Command{
 	Short: "Start a GATT server to enable wifi connection",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		if adapterID == "" {
-			adapterID = "hci0"
+
+		instance, err := runtime.NewRuntime()
+		if err != nil {
+			log.Fatal(err)
 		}
 
-		if err := ble.Serve(adapterID); err != nil {
-			log.Fatalf("Error: %s\n", err)
-		}
+		instance.Start()
+
 	},
 }
 

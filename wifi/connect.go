@@ -2,6 +2,7 @@ package wifi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -14,13 +15,19 @@ import (
 var ConnectionNamePrefix = "piwifi__"
 
 // Connect to a wifi network
-func (m *Manager) Connect(ssid, password, encryption string) error {
+func (m *Manager) Connect(connectionParams ConnectionParams) error {
+
+	if connectionParams.AuthType != AuthTypeWPA {
+		return errors.New("Only WPA authentication type is supported at this time")
+	}
 
 	// enable wifi
 	err := m.EnableWifi()
 	if err != nil {
 		return fmt.Errorf("EnableWifi: %s", err)
 	}
+
+	log.Debugf("Connecting..")
 
 	// get wifi devices
 	devices, err := m.GetWifiDevices()
@@ -33,24 +40,24 @@ func (m *Manager) Connect(ssid, password, encryption string) error {
 	device := devices[0]
 
 	// create wifi connection if not exists
-	connection, err := m.CreateWifiConnection(ssid, password, encryption)
+	connection, err := m.CreateWifiConnection(connectionParams)
 	if err != nil {
 		return fmt.Errorf("CreateWifiConnection: %s", err)
 	}
 
 	// try to connect
-	activeConnectionPath, err := m.activateConnection(device.Path, connection.ObjectPath)
+	_, err = m.activateConnection(device.Path, connection.ObjectPath)
 	if err != nil {
 		return fmt.Errorf("activateConnection: %s", err)
 	}
 
-	log.Tracef("Activated connection path %s", activeConnectionPath)
+	log.Debugf("Connection initiated")
 
 	return nil
 }
 
 // CreateWifiConnection create a unique connection or update if already exists
-func (m *Manager) CreateWifiConnection(ssid, password, encryption string) (conn Connection, err error) {
+func (m *Manager) CreateWifiConnection(connectionParams ConnectionParams) (conn Connection, err error) {
 
 	connections, err := m.GetConnections()
 	if err != nil {
@@ -59,7 +66,7 @@ func (m *Manager) CreateWifiConnection(ssid, password, encryption string) (conn 
 
 	var connection Connection
 	for _, conn := range connections {
-		if conn.SSID == ssid {
+		if conn.SSID == connectionParams.SSID {
 			connection = conn
 		}
 	}
@@ -72,21 +79,21 @@ func (m *Manager) CreateWifiConnection(ssid, password, encryption string) (conn 
 			return conn, fmt.Errorf("uuid: %s", err)
 		}
 
-		connectionConfig := createWifiConnection(uuid.String(), ssid, password, encryption)
+		connectionConfig := createWifiConnection(uuid.String(), connectionParams)
 
 		_, err = m.settings.AddConnection(context.Background(), connectionConfig)
 		if err != nil {
 			return conn, err
 		}
 
-		connection, err = m.GetConnectionBySSID(ssid)
+		connection, err = m.GetConnectionBySSID(connection.SSID)
 		if err != nil {
-			return conn, err
+			return conn, fmt.Errorf("GetConnectionBySSID: %s", err)
 		}
 
-		log.Debugf("Created connection %s", connection.ID)
+		log.Tracef("Created connection %s", connection.ID)
 	} else {
-		log.Debugf("Connection %s exists", connection.ID)
+		log.Tracef("Connection %s exists", connection.ID)
 	}
 
 	return connection, nil
@@ -95,6 +102,18 @@ func (m *Manager) CreateWifiConnection(ssid, password, encryption string) (conn 
 func (m *Manager) activateConnection(devicePath, connectionPath dbus.ObjectPath) (dbus.ObjectPath, error) {
 
 	log.Tracef("%s %s", connectionPath, devicePath)
+
+	activeConnections, err := m.GetActiveConnections()
+	if err != nil {
+		return dbus.ObjectPath(""), fmt.Errorf("GetActiveConnections: %s", err)
+	}
+
+	for _, ac := range activeConnections {
+		if ac.ObjectPath == connectionPath {
+			log.Tracef("Connection is already active")
+			return ac.ActiveConnectionPath, nil
+		}
+	}
 
 	activeConn, err := m.networkManager.ActivateConnection(
 		context.Background(),
@@ -107,25 +126,24 @@ func (m *Manager) activateConnection(devicePath, connectionPath dbus.ObjectPath)
 	}
 
 	//todo: check if active
-
-	log.Printf("Connection activated: %s", activeConn)
+	// log.Printf("Connection activated: %s", activeConn)
 
 	return activeConn, nil
 }
 
-func createWifiConnection(uuid, ssid, password, encryption string) map[string]map[string]dbus.Variant {
+func createWifiConnection(uuid string, connectionParams ConnectionParams) map[string]map[string]dbus.Variant {
 
 	// uuid.FromBytes([]byte(ssid))
 
 	wifi := map[string]dbus.Variant{
-		"ssid": dbus.MakeVariant([]byte(ssid)),
+		"ssid": dbus.MakeVariant([]byte(connectionParams.SSID)),
 		"mode": dbus.MakeVariant("infrastructure"),
 	}
 
 	conn := map[string]dbus.Variant{
 		"type": dbus.MakeVariant("802-11-wireless"),
 		"uuid": dbus.MakeVariant(uuid),
-		"id":   dbus.MakeVariant(fmt.Sprintf("%s%s", ConnectionNamePrefix, ssid)),
+		"id":   dbus.MakeVariant(fmt.Sprintf("%s%s", ConnectionNamePrefix, connectionParams.SSID)),
 	}
 
 	ip4 := map[string]dbus.Variant{
@@ -135,10 +153,16 @@ func createWifiConnection(uuid, ssid, password, encryption string) map[string]ma
 		"method": dbus.MakeVariant("ignore"),
 	}
 
+	// todo: handle other connection types
+	keyMgm := ""
+	if connectionParams.AuthType == AuthTypeWPA {
+		keyMgm = "wpa-psk"
+	}
+
 	wsec := map[string]dbus.Variant{
-		"key-mgmt": dbus.MakeVariant("wpa-psk"),
+		"key-mgmt": dbus.MakeVariant(keyMgm),
 		"auth-alg": dbus.MakeVariant("open"),
-		"psk":      dbus.MakeVariant(password),
+		"psk":      dbus.MakeVariant(connectionParams.Password),
 	}
 
 	con := map[string]map[string]dbus.Variant{

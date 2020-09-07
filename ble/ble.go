@@ -1,9 +1,6 @@
 package ble
 
 import (
-	"os"
-	"time"
-
 	"github.com/muka/go-bluetooth/hw"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -13,13 +10,16 @@ import (
 	"github.com/muka/go-bluetooth/bluez/profile/gatt"
 )
 
-//Serve start a GATT server to expose credentials
-func Serve(adapterID string) error {
+// NewService start a GATT server to expose credentials
+func NewService() (*service.App, error) {
 
-	log.SetLevel(log.TraceLevel)
+	adapterID := viper.GetString("ble_adapter")
+	if adapterID == "" {
+		adapterID = "hci0"
+	}
 
 	btmgmt := hw.NewBtMgmt(adapterID)
-	if len(os.Getenv("DOCKER")) > 0 {
+	if viper.GetString("btmgmt_bin") == "" {
 		btmgmt.BinPath = viper.GetString("btmgmt_bin")
 	}
 
@@ -32,19 +32,19 @@ func Serve(adapterID string) error {
 	options := service.AppOptions{
 		AdapterID:  adapterID,
 		AgentCaps:  agent.CapNoInputNoOutput,
-		UUIDSuffix: "-0000-1000-8000-00805f9b34fb",
-		UUID:       "1234",
+		UUIDSuffix: viper.GetString("ble_uuid_suffix"),
+		UUID:       viper.GetString("ble_uuid_id"),
 	}
 
 	a, err := service.NewApp(options)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer a.Close()
 
 	a.SetName(viper.GetString("service_name"))
 
-	log.Infof("HW address %s", a.Adapter().Properties.Address)
+	log.Debugf("HW address %s", a.Adapter().Properties.Address)
 
 	if !a.Adapter().Properties.Powered {
 		err = a.Adapter().SetPowered(true)
@@ -53,90 +53,73 @@ func Serve(adapterID string) error {
 		}
 	}
 
-	service1, err := a.NewService("2233")
+	service1, err := a.NewService(viper.GetString("ble_service_id"))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = a.AddService(service1)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	char1, err := service1.NewChar("3344")
+	// char1 - write connection config and read status
+	char1, err := service1.NewChar(viper.GetString("ble_char_id_wifi"))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	char1.Properties.Flags = []string{
 		gatt.FlagCharacteristicRead,
 		gatt.FlagCharacteristicWrite,
+		gatt.FlagCharacteristicNotify,
 	}
-
-	char1.OnRead(service.CharReadCallback(func(c *service.Char, options map[string]interface{}) ([]byte, error) {
-		log.Warnf("GOT READ REQUEST")
-		return []byte{42}, nil
-	}))
-
-	char1.OnWrite(service.CharWriteCallback(func(c *service.Char, value []byte) ([]byte, error) {
-
-		log.Warnf("GOT WRITE REQUEST %s", value)
-
-		return value, nil
-	}))
 
 	err = service1.AddChar(char1)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// descr1, err := char1.NewDescr("4455")
-	// if err != nil {
-	// 	return err
-	// }
+	// char2 - list wifi connections
 
-	// descr1.Properties.Flags = []string{
-	// 	gatt.FlagDescriptorRead,
-	// 	gatt.FlagDescriptorWrite,
-	// }
+	char2, err := service1.NewChar(viper.GetString("ble_char_id_ap"))
+	if err != nil {
+		return nil, err
+	}
 
-	// descr1.OnRead(service.DescrReadCallback(func(c *service.Descr, options map[string]interface{}) ([]byte, error) {
-	// 	log.Warnf("GOT READ REQUEST")
-	// 	return []byte{42}, nil
-	// }))
-	// descr1.OnWrite(service.DescrWriteCallback(func(d *service.Descr, value []byte) ([]byte, error) {
-	// 	log.Warnf("GOT WRITE REQUEST")
-	// 	return value, nil
-	// }))
+	char2.Properties.Flags = []string{
+		gatt.FlagCharacteristicRead,
+		gatt.FlagCharacteristicNotify,
+	}
 
-	// err = char1.AddDescr(descr1)
-	// if err != nil {
-	// 	return err
-	// }
+	err = service1.AddChar(char2)
+	if err != nil {
+		return nil, err
+	}
 
 	err = a.Run()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	log.Infof("Exposed service %s", service1.Properties.UUID)
 
-	timeout := uint32(6 * 3600) // 6h
-	log.Infof("Advertising for %ds...", timeout)
-	cancel, err := a.Advertise(timeout)
-	if err != nil {
-		return err
-	}
+	// timeout := uint32(6 * 3600) // 6h
+	// log.Infof("Advertising for %ds...", timeout)
+	// cancel, err := a.Advertise(timeout)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	defer cancel()
+	// defer cancel()
 
-	wait := make(chan bool)
-	go func() {
-		time.Sleep(time.Duration(timeout) * time.Second)
-		wait <- true
-	}()
+	// wait := make(chan bool)
+	// go func() {
+	// 	time.Sleep(time.Duration(timeout) * time.Second)
+	// 	wait <- true
+	// }()
 
-	<-wait
+	// <-wait
 
-	return nil
+	return a, nil
 }
