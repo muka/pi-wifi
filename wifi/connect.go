@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
@@ -88,7 +89,9 @@ func (m *Manager) CreateWifiConnection(connectionParams ConnectionParams) (conn 
 
 		connection, err = m.GetConnectionBySSID(connection.SSID)
 		if err != nil {
-			return conn, fmt.Errorf("GetConnectionBySSID: %s", err)
+			if !strings.Contains(err.Error(), "No connection by ssid") {
+				return conn, fmt.Errorf("GetConnectionBySSID: %s", err)
+			}
 		}
 
 		log.Tracef("Created connection %s", connection.ID)

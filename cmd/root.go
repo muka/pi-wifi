@@ -59,8 +59,13 @@ func initConfig() {
 	viper.SetDefault("LOG_LEVEL", "info")
 	viper.SetDefault("service_name", "pi-wifi")
 
-	// viper.SetDefault("btmgmt_bin", "./bin/docker-btmgmt")
-	viper.SetDefault("btmgmt_bin", "/usr/bin/btmgmt")
+	// viper.SetDefault("btmgmt_bin", "/usr/bin/btmgmt")
+
+	viper.SetDefault("ble_uuid_suffix", "-0000-1000-8000-00805f9b34fb")
+	viper.SetDefault("ble_uuid_id", "1234")
+	viper.SetDefault("ble_service_id", "2233")
+	viper.SetDefault("ble_char_id_wifi", "3344")
+	viper.SetDefault("ble_char_id_ap", "4455")
 
 	lvl, err := log.ParseLevel(viper.GetString("LOG_LEVEL"))
 	if err != nil {

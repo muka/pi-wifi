@@ -19,7 +19,12 @@ var serverCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		instance.Start()
+		defer instance.Stop()
+
+		err = instance.Start()
+		if err != nil {
+			log.Fatal(err)
+		}
 
 	},
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/muka/go-bluetooth/api/service"
 	"github.com/muka/network_manager"
+	"github.com/muka/pi-wifi/wifi"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -16,16 +17,20 @@ func (r *Runtime) onConnectionRead(char *service.Char) {
 
 		conn, err := r.Wifi.GetConnectivity()
 		if err != nil {
+			log.Errorf("Failed to get connectivity: %s", err)
 			return []byte{}, err
 		}
 
-		res := "unknown"
+		res := "disconnected"
 		switch conn {
 		case network_manager.NM_CONNECTIVITY_FULL:
 			res = "connected"
 			break
 		case network_manager.NM_CONNECTIVITY_LIMITED:
 			res = "limited"
+			break
+		case network_manager.NM_CONNECTIVITY_UNKNOWN:
+			res = "unknown"
 			break
 		}
 
@@ -35,8 +40,21 @@ func (r *Runtime) onConnectionRead(char *service.Char) {
 
 func (r *Runtime) onConnectionWrite(char *service.Char) {
 	char.OnWrite(service.CharWriteCallback(func(c *service.Char, value []byte) ([]byte, error) {
-		log.Debug("onConnectionWrite callback: %s", value)
-		return value, nil
+		log.Debugf("onConnectionWrite callback: %s", value)
+
+		params, err := wifi.ParseConnection(string(value))
+		if err != nil {
+			log.Errorf("Error parsing connection parameters: %s", err)
+			return []byte{}, err
+		}
+
+		err = r.Wifi.Connect(params)
+		if err != nil {
+			log.Errorf("Error connecting: %s", err)
+			return []byte("Internal error"), err
+		}
+
+		return []byte("ok"), nil
 	}))
 
 }
@@ -49,6 +67,7 @@ func (r *Runtime) onAPList(char *service.Char) {
 
 		devices, err := r.Wifi.GetWifiDevices()
 		if err != nil {
+			log.Errorf("Failed to list wifi devices: %s", err)
 			return []byte{}, err
 		}
 

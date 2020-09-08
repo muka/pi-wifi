@@ -44,6 +44,9 @@ func (m *Manager) GetConnection(fn func(conn Connection) bool) (connection Conne
 
 // GetConnectionBySSID retrieve a manged connection by ssid
 func (m *Manager) GetConnectionBySSID(ssid string) (conn Connection, err error) {
+	if ssid == "" {
+		return conn, errors.New("Empty SSID provided")
+	}
 	conn, err = m.GetConnection(func(conn Connection) bool {
 		return conn.SSID == ssid
 	})
@@ -55,6 +58,9 @@ func (m *Manager) GetConnectionBySSID(ssid string) (conn Connection, err error) 
 
 // GetConnectionByID retrieve a manged connection by ID
 func (m *Manager) GetConnectionByID(id string) (conn Connection, err error) {
+	if id == "" {
+		return conn, errors.New("Empty ID provided")
+	}
 	conn, err = m.GetConnection(func(conn Connection) bool {
 		return conn.ID == id
 	})

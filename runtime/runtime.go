@@ -1,8 +1,6 @@
 package runtime
 
 import (
-	"strings"
-
 	"github.com/muka/go-bluetooth/api/service"
 	"github.com/muka/pi-wifi/ble"
 	"github.com/muka/pi-wifi/wifi"
@@ -25,7 +23,7 @@ func NewRuntime() (instance Runtime, err error) {
 	services := instance.Ble.GetServices()
 	for _, service := range services {
 		for _, char := range service.GetChars() {
-			switch strings.Split(char.UUID, "-")[0] {
+			switch char.UUID[4:8] {
 			// connection
 			case viper.GetString("ble_char_id_wifi"):
 				instance.onConnectionRead(char)
@@ -44,15 +42,35 @@ func NewRuntime() (instance Runtime, err error) {
 
 // Runtime handle instances of
 type Runtime struct {
-	Wifi *wifi.Manager
-	Ble  *service.App
+	Wifi            *wifi.Manager
+	Ble             *service.App
+	CancelAdvertise func()
+}
+
+// Stop stop the runtime
+func (r *Runtime) Stop() {
+	r.CancelAdvertise()
+	r.Ble.Close()
 }
 
 // Start initialize the runtime
-func (r *Runtime) Start() {
+func (r *Runtime) Start() error {
 
 	// check if wifi is connects
 	// subscrbe to connectivity changes
 	// start BLE advertising if not
 
+	err := r.Ble.Run()
+	if err != nil {
+		return err
+	}
+
+	cancel, err := r.Ble.Advertise(0)
+
+	r.CancelAdvertise = cancel
+	if err != nil {
+		return err
+	}
+
+	select {}
 }

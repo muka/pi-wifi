@@ -19,7 +19,8 @@ func NewService() (*service.App, error) {
 	}
 
 	btmgmt := hw.NewBtMgmt(adapterID)
-	if viper.GetString("btmgmt_bin") == "" {
+	if viper.GetString("btmgmt_bin") != "" {
+		log.Infof("Using btmgmt path %s", viper.GetString("btmgmt_bin"))
 		btmgmt.BinPath = viper.GetString("btmgmt_bin")
 	}
 
@@ -40,7 +41,6 @@ func NewService() (*service.App, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer a.Close()
 
 	a.SetName(viper.GetString("service_name"))
 
@@ -96,30 +96,6 @@ func NewService() (*service.App, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	err = a.Run()
-	if err != nil {
-		return nil, err
-	}
-
-	log.Infof("Exposed service %s", service1.Properties.UUID)
-
-	// timeout := uint32(6 * 3600) // 6h
-	// log.Infof("Advertising for %ds...", timeout)
-	// cancel, err := a.Advertise(timeout)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// defer cancel()
-
-	// wait := make(chan bool)
-	// go func() {
-	// 	time.Sleep(time.Duration(timeout) * time.Second)
-	// 	wait <- true
-	// }()
-
-	// <-wait
 
 	return a, nil
 }
