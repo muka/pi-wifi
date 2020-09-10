@@ -59,6 +59,8 @@ func initConfig() {
 	viper.SetDefault("LOG_LEVEL", "info")
 	viper.SetDefault("service_name", "pi-wifi")
 
+	viper.SetDefault("http_port", 9099)
+
 	// viper.SetDefault("btmgmt_bin", "/usr/bin/btmgmt")
 
 	viper.SetDefault("ble_uuid_suffix", "-0000-1000-8000-00805f9b34fb")

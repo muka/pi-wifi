@@ -7,6 +7,7 @@ replace github.com/muka/go-bluetooth => ../go-bluetooth
 require (
 	github.com/godbus/dbus/v5 v5.0.3
 	github.com/google/uuid v1.1.2
+	github.com/gorilla/mux v1.8.0
 	github.com/muka/go-bluetooth v0.0.0
 	github.com/muka/network_manager v0.0.0-20200903202308-ae5ede816e07
 	github.com/prometheus/common v0.4.0
