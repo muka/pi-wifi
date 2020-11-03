@@ -87,7 +87,7 @@ func (m *Manager) CreateWifiConnection(connectionParams ConnectionParams) (conn 
 			return conn, err
 		}
 
-		connection, err = m.GetConnectionBySSID(connection.SSID)
+		connection, err = m.GetConnectionBySSID(fmt.Sprintf("%s_%s", ConnectionNamePrefix, connectionParams.SSID))
 		if err != nil {
 			if !strings.Contains(err.Error(), "No connection by ssid") {
 				return conn, fmt.Errorf("GetConnectionBySSID: %s", err)
