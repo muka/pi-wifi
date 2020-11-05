@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
@@ -116,7 +117,19 @@ func (srv *HTTPServer) Serve() error {
 
 	})
 
+	if viper.GetBool("http_public") {
+		httpDir := viper.GetString("http_public_dir")
+		_, err := os.Stat(httpDir)
+		if !os.IsNotExist(err) {
+			fs := http.FileServer(http.Dir(httpDir))
+			router.PathPrefix("/").Handler(http.StripPrefix("/", fs))
+			log.Debugf("Serving static files from %s", httpDir)
+		} else {
+			log.Warnf("http_public_dir=%s doesn't exists", httpDir)
+		}
+	}
+
 	port := fmt.Sprintf(":%d", viper.GetInt("http_port"))
-	log.Debugf("Serving on %s", port)
+	log.Debugf("Serving on http://localhost%s", port)
 	return http.ListenAndServe(port, router)
 }

@@ -36,6 +36,11 @@ func (m *Manager) GetAccessPoints(devicePath dbus.ObjectPath) ([]AccessPoint, er
 
 	list := []AccessPoint{}
 
+	err := m.EnableWifi()
+	if err != nil {
+		return list, err
+	}
+
 	accessPoints, err := wireless.GetAccessPoints(context.Background())
 	if err != nil {
 		return list, err

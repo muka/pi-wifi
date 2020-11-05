@@ -16,6 +16,8 @@ func NewService() (*service.App, error) {
 	adapterID := viper.GetString("ble_adapter")
 	if adapterID == "" {
 		adapterID = "hci0"
+	} else {
+		log.Infof("Using adapter %s", adapterID)
 	}
 
 	btmgmt := hw.NewBtMgmt(adapterID)

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Bluetooth</title>
+  <script src="https://cozmo.github.io/jsQR/jsQR.js"></script>
+  <script type="text/javascript">
+
+    const config = {
+      ble: {
+        filters: [
+          {
+            name: "pi-wifi"
+          }
+        ],
+        serviceUUID: 0x12342233
+      }
+    }
+
+    function setError(errstr) {
+      document.getElementById("error").innerText = errstr
+    }
+
+    const showContent = (id) => {
+      [...document.getElementsByClassName("content")].forEach(el => el.classList.add("hidden"))
+      document.getElementById(id).classList.remove("hidden")
+    }
+
+    function bluetooth() {
+      navigator.bluetooth.requestDevice({
+        filters: config.ble.filters,
+        // acceptAllDevices: true
+      })
+        .then((device) => {
+          console.log("device", device)
+          document.getElementById("device").innerHTML = `Device selected: <b>${device.name}</b> (${device.id})`
+          return device.gatt.connect()
+        })
+        .then(server => server.getPrimaryService(config.ble.serviceUUID))
+        // .then(service => service.getCharacteristic('heart_rate_measurement'))
+        // .then(characteristic => characteristic.startNotifications())
+        // .then(characteristic => characteristic.addEventListener('characteristicvaluechanged', this.handleCharacteristicValueChanged.bind(this)))
+        .catch(error => {
+          console.log(error)
+          document.getElementById("error").innerHTML = error.message
+        })
+    }
+
+    const qrcode = () => {
+
+      var video = document.createElement("video");
+      var canvasElement = document.getElementById("canvas");
+      var canvas = canvasElement.getContext("2d");
+      var loadingMessage = document.getElementById("loadingMessage");
+      var outputContainer = document.getElementById("output");
+      var outputMessage = document.getElementById("outputMessage");
+      var outputData = document.getElementById("outputData");
+
+      function drawLine(begin, end, color) {
+        canvas.beginPath();
+        canvas.moveTo(begin.x, begin.y);
+        canvas.lineTo(end.x, end.y);
+        canvas.lineWidth = 4;
+        canvas.strokeStyle = color;
+        canvas.stroke();
+      }
+
+      // Use facingMode: environment to attemt to get the front camera on phones
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(function (stream) {
+        video.srcObject = stream;
+        video.setAttribute("playsinline", true); // required to tell iOS safari we don't want fullscreen
+        video.play();
+        requestAnimationFrame(tick);
+      });
+
+      function tick() {
+        loadingMessage.innerText = "⌛ Loading video..."
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          loadingMessage.hidden = true;
+          canvasElement.hidden = false;
+          outputContainer.hidden = false;
+
+          canvasElement.height = video.videoHeight;
+          canvasElement.width = video.videoWidth;
+          canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
+          var imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
+          var code = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: "dontInvert",
+          });
+          if (code) {
+            drawLine(code.location.topLeftCorner, code.location.topRightCorner, "#FF3B58");
+            drawLine(code.location.topRightCorner, code.location.bottomRightCorner, "#FF3B58");
+            drawLine(code.location.bottomRightCorner, code.location.bottomLeftCorner, "#FF3B58");
+            drawLine(code.location.bottomLeftCorner, code.location.topLeftCorner, "#FF3B58");
+            outputMessage.hidden = true;
+            outputData.parentElement.hidden = false;
+            outputData.innerText = code.data;
+          }
+          // else {
+          //   outputMessage.hidden = false;
+          //   outputData.parentElement.hidden = true;
+          // }
+        }
+        requestAnimationFrame(tick);
+      }
+
+    }
+
+    const req = (path, data) => {
+      const baseurl = document.location.toString().replace("index.html", "").replace("#", "")
+      console.log("req", baseurl + path)
+      return fetch(baseurl + path, {
+        method: data ? 'POST' : 'GET',
+        mode: 'same-origin',
+        cache: 'no-cache',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: data ? JSON.stringify(data) : null
+      }).then(response => response.json()).then(function (data) {
+        console.log(data)
+        return Promise.resolve(data)
+      }).catch(err => setError(err.message))
+    }
+
+    function connStatus() {
+      req("status").then(data => {
+        document.getElementById("connStatus").innerText = data.status
+      })
+    }
+
+    let listapInterval = null
+    function listap() {
+      document.getElementById("aplist").innerHTML = "<li>Loading access point list</li>"
+      if (!listapInterval) {       
+        listapInterval = setInterval(() => {
+          req("listap").then(data => {
+          
+            if (data.accessPoints) {
+
+              const list = data.accessPoints
+                .sort((a,b) => a.strength < b.strength ? 1 : -1)
+                .map(({ssid,strength}) => `<li>${ssid} (${strength}db)</li>`)
+              
+              document.getElementById("aplist").innerHTML = list.join("")
+
+            }
+
+          })
+        }, 1000)
+      }
+    }
+
+    const handlers = {
+      bluetooth: bluetooth,
+      qrcode: qrcode,
+      listap: listap,
+      status: connStatus,
+    }
+    function onClick(ctx) {
+      setError("")
+      showContent(ctx)
+      handlers[ctx]()
+      return false
+    }
+
+    function connect(data) {
+      console.log(data)
+      setError("")
+      req("connect", { payload: data }).then((data) => {
+        document.getElementById("doconnect-result").innerText = data.status
+      })
+    }
+
+  </script>
+  <style>
+    body {
+      padding: 1em;
+      font: 1.4em sans-serif;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    #error {
+      color: red;
+    }
+
+    #canvas {
+      height: 240px;
+    }
+
+    #qrcode-img {
+      height: 240px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="menu">
+    Connect with
+    <a href="#" onclick="onClick('bluetooth')">Bluetooth</a>
+    &nbsp;
+    <a href="#" onclick="onClick('qrcode')">QR code</a>
+    &nbsp; | &nbsp;
+    <a href="#" onclick="onClick('status')">Connection Status</a>
+    &nbsp;
+    <a href="#" onclick="onClick('listap')">List Access Points</a>
+  </div>
+
+  ​
+  <div id="listap" class="content hidden">
+    <h1>Access points</h1>
+    <ul id="aplist">
+
+    </ul>
+  </div>
+
+  <div id="status" class="content hidden">
+    <h1>Connection status</h1>
+    <ul id="connStatus">
+
+    </ul>
+  </div>
+
+  <div id="bluetooth" class="content hidden">
+    <h1>Bluetooth example</h1>
+    <p>This example uses the Web Bluetooth API (it should works on Chrome). The example may not work if using the same bluez instance and adapter both for connecting and serving the service.</p>
+    <div id="device"></div>
+
+  </div>
+
+  <div id="qrcode" class="content hidden">
+    <h1>QR code example</h1>
+    <p>Put a compatible QR code in front of the camera. On the right an example one good for testing.</p>
+    <div id="loadingMessage">🎥 Unable to access video stream (please make sure you have a webcam enabled)</div>
+
+    <div class="example-qrcode">
+      <canvas id="canvas" hidden></canvas>
+      <img id="qrcode-img" src="/qrcode.svg" />
+    </div>
+
+    <div id="output" hidden>
+      <div id="outputMessage">No QR code detected.</div>
+      <div hidden>
+        <b>Data:</b> <span id="outputData"></span>
+
+        <div id="doconnect-wrap">
+          <button onclick="connect(document.getElementById('outputData').innerText)">Connect</button>
+          &nbsp;
+          <span id="doconnect-result"></span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="error"></div>
+
+</body>
+
+</html>

@@ -51,25 +51,27 @@ func initConfig() {
 
 	viper.AutomaticEnv() // read in environment variables that match
 
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
-	}
-
-	viper.SetDefault("LOG_LEVEL", "info")
+	viper.SetDefault("log_level", "info")
 	viper.SetDefault("service_name", "pi-wifi")
 
 	viper.SetDefault("http_port", 9099)
+	viper.SetDefault("http_public", true)
+	viper.SetDefault("http_public_dir", "./public/")
 
 	// viper.SetDefault("btmgmt_bin", "/usr/bin/btmgmt")
-
+	viper.SetDefault("ble_adapter", "hci0")
 	viper.SetDefault("ble_uuid_suffix", "-0000-1000-8000-00805f9b34fb")
 	viper.SetDefault("ble_uuid_id", "1234")
 	viper.SetDefault("ble_service_id", "2233")
 	viper.SetDefault("ble_char_id_wifi", "3344")
 	viper.SetDefault("ble_char_id_ap", "4455")
 
-	lvl, err := log.ParseLevel(viper.GetString("LOG_LEVEL"))
+	// If a config file is found, read it in.
+	if err := viper.ReadInConfig(); err == nil {
+		log.Infof("Using config file %s", viper.ConfigFileUsed())
+	}
+
+	lvl, err := log.ParseLevel(viper.GetString("log_level"))
 	if err != nil {
 		log.Fatal(err)
 	}
